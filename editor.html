@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>引用画像ジェネレータ エディタ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000000;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        .panel h2 {
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #555;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        input[type="text"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .style-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .style-btn {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .style-btn:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .style-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .preview-container {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .preview-img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .url-section {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+        }
+
+        .url-input {
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 8px;
+            word-break: break-all;
+            font-size: 12px;
+            color: #666;
+            font-family: 'Courier New', monospace;
+            margin-top: 10px;
+        }
+
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: background 0.3s;
+        }
+
+        .copy-btn:hover {
+            background: #764ba2;
+        }
+
+        .copy-btn.copied {
+            background: #4caf50;
+        }
+
+        .error {
+            color: #f44336;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+
+            .style-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 左側：コントロールパネル -->
+        <div class="panel">
+            <h2>⚙️ パラメータ編集</h2>
+
+            <div class="form-group">
+                <label for="type">スタイル</label>
+                <div class="style-grid">
+                    <button class="style-btn active" data-type="">標準</button>
+                    <button class="style-btn" data-type="color">カラー</button>
+                    <button class="style-btn" data-type="reverse">反転</button>
+                    <button class="style-btn" data-type="reverseColor">反転カラー</button>
+                    <button class="style-btn" data-type="white">ホワイト</button>
+                    <button class="style-btn" data-type="reverseWhite">反転ホワイト</button>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="name">ユーザー名</label>
+                <input type="text" id="name" placeholder="例: Takasumi" value="SAMPLE">
+            </div>
+
+            <div class="form-group">
+                <label for="id">ユーザーID</label>
+                <input type="text" id="id" placeholder="例: 1074653338190221402" value="0000000000000000000">
+            </div>
+
+            <div class="form-group">
+                <label for="content">発言内容</label>
+                <textarea id="content" placeholder="複数行対応&#10;改行してね">Make it a Quote</textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="icon">アイコンURL</label>
+                <input type="text" id="icon" placeholder="https://..." value="https://cdn.discordapp.com/embed/avatars/0.png">
+                <div class="error" id="iconError"></div>
+            </div>
+
+            <div class="url-section">
+                <label>生成URL</label>
+                <div class="url-input" id="urlDisplay">
+                    http://localhost:3000/?type=&name=SAMPLE&id=0000000000000000000&content=Make+it+a+Quote&icon=https://...
+                </div>
+                <button class="copy-btn" id="copyBtn" onclick="copyUrl()">📋 URLをコピー</button>
+            </div>
+        </div>
+
+        <!-- 右側：プレビュー -->
+        <div class="panel">
+            <h2>👁️ プレビュー</h2>
+            <div class="preview-container">
+                <div id="previewContent">
+                    <div class="loading"></div>
+                    <p style="margin-top: 20px; color: #999;">読み込み中...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentType = "";
+
+        // 要素の取得
+        const nameInput = document.getElementById('name');
+        const idInput = document.getElementById('id');
+        const contentInput = document.getElementById('content');
+        const iconInput = document.getElementById('icon');
+        const urlDisplay = document.getElementById('urlDisplay');
+        const previewContent = document.getElementById('previewContent');
+        const styleBtns = document.querySelectorAll('.style-btn');
+        const iconError = document.getElementById('iconError');
+
+        // スタイルボタンのイベント
+        styleBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                styleBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                currentType = this.dataset.type;
+                updatePreview();
+            });
+        });
+
+        // 入力フィールドのイベント
+        nameInput.addEventListener('input', updatePreview);
+        idInput.addEventListener('input', updatePreview);
+        contentInput.addEventListener('input', updatePreview);
+        iconInput.addEventListener('input', () => {
+            iconError.textContent = '';
+            updatePreview();
+        });
+
+        // プレビュー更新関数
+        function updatePreview() {
+            const name = nameInput.value || 'SAMPLE';
+            const id = idInput.value || '0000000000000000000';
+            const content = contentInput.value || 'Make it a Quote';
+            const icon = iconInput.value || 'https://cdn.discordapp.com/embed/avatars/0.png';
+
+            // URLを生成
+            let url = `http://localhost:3000/?`;
+            if (currentType) {
+                url += `type=${currentType}&`;
+            }
+            url += `name=${encodeURIComponent(name)}&id=${encodeURIComponent(id)}&content=${encodeURIComponent(content)}&icon=${encodeURIComponent(icon)}`;
+
+            // URLを表示
+            updateUrlDisplay(url);
+
+            // プレビューを更新
+            previewContent.innerHTML = '<div class="loading"></div><p style="margin-top: 20px; color: #999;">読み込み中...</p>';
+            
+            const img = new Image();
+            img.onload = function() {
+                previewContent.innerHTML = '';
+                previewContent.appendChild(img);
+                img.classList.add('preview-img');
+            };
+            img.onerror = function() {
+                iconError.textContent = '⚠️ 画像の読み込みに失敗しました。アイコンURLを確認してください。';
+                previewContent.innerHTML = '<p style="color: #f44336; padding: 20px;">エラー: 画像を読み込めません</p>';
+            };
+            img.src = url;
+        }
+
+        // URL表示更新関数
+        function updateUrlDisplay(url) {
+            urlDisplay.textContent = url;
+        }
+
+        // URLコピー関数
+        function copyUrl() {
+            const url = urlDisplay.textContent;
+            navigator.clipboard.writeText(url).then(() => {
+                const btn = document.getElementById('copyBtn');
+                const originalText = btn.textContent;
+                btn.textContent = '✅ コピーしました!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.classList.remove('copied');
+                }, 2000);
+            }).catch(() => {
+                alert('コピーに失敗しました');
+            });
+        }
+
+        // 初期プレビュー表示
+        updatePreview();
+    </script>
+</body>
+</html>
